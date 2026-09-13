@@ -6,7 +6,19 @@ from api.main import app
 client = TestClient(app)
 
 
-def test_predict_endpoint():
+def test_predict_endpoint(monkeypatch):
+
+    def mock_predict_churn(customer_data):
+        return {
+            "churn_prediction": 1,
+            "churn_probability": 0.85
+        }
+
+    monkeypatch.setattr(
+        "api.main.predict_churn",
+        mock_predict_churn
+    )
+
     customer_data = {
         "age": 35,
         "gender": "Male",
@@ -40,7 +52,10 @@ def test_predict_endpoint():
         "signup_date": "2025-05-15"
     }
 
-    response = client.post("/predict", json=customer_data)
+    response = client.post(
+        "/predict",
+        json=customer_data
+    )
 
     assert response.status_code == 200
 
