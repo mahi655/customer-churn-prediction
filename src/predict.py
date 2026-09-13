@@ -1,29 +1,29 @@
+from functools import lru_cache
 from pathlib import Path
 
 import joblib
 import pandas as pd
 
 
-
-# Project root directory
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-# Model paths
 
 PREPROCESSOR_PATH = PROJECT_ROOT / "models" / "preprocessor.joblib"
 MODEL_PATH = PROJECT_ROOT / "models" / "xgb_churn_model.joblib"
 THRESHOLD_PATH = PROJECT_ROOT / "models" / "churn_threshold.joblib"
 
 
-# Load trained components
+@lru_cache(maxsize=1)
+def load_model_artifacts():
+    """
+    Load the preprocessing pipeline, model, and threshold once.
+    """
 
-preprocessor = joblib.load(PREPROCESSOR_PATH)
-model = joblib.load(MODEL_PATH)
-threshold = joblib.load(THRESHOLD_PATH)
+    preprocessor = joblib.load(PREPROCESSOR_PATH)
+    model = joblib.load(MODEL_PATH)
+    threshold = joblib.load(THRESHOLD_PATH)
 
+    return preprocessor, model, threshold
 
-# Prediction function
 
 def predict_churn(customer_data: dict) -> dict:
     """
@@ -40,34 +40,29 @@ def predict_churn(customer_data: dict) -> dict:
         Churn prediction and churn probability.
     """
 
-    # Convert input dictionary to DataFrame
+    preprocessor, model, threshold = load_model_artifacts()
+
     customer_df = pd.DataFrame([customer_data])
 
-    # Convert signup_date to datetime
     customer_df["signup_date"] = pd.to_datetime(
         customer_df["signup_date"]
     )
 
-    # Create date-based features
     customer_df["signup_year"] = customer_df["signup_date"].dt.year
     customer_df["signup_month"] = customer_df["signup_date"].dt.month
 
-    # Remove original date column
     customer_df = customer_df.drop(
         columns=["signup_date"]
     )
 
-    # Apply the already-fitted preprocessing pipeline
     customer_processed = preprocessor.transform(
         customer_df
     )
 
-    # Get probability of churn
     churn_probability = model.predict_proba(
         customer_processed
     )[:, 1][0]
 
-    # Apply selected classification threshold
     prediction = int(
         churn_probability >= threshold
     )
