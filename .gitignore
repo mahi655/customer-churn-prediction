@@ -14,8 +14,6 @@ env/
 # Data files
 data/*.csv
 
-# Trained model files
-models/*.joblib
 
 # Environment / secrets
 .env
